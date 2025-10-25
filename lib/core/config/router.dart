@@ -20,6 +20,7 @@ import '../../features/gamification/presentation/pages/leaderboard_page.dart';
 import '../../features/gamification/presentation/pages/points_history_page.dart';
 import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../constants/route_constants.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -109,10 +110,7 @@ final routerProvider = Provider<GoRouter>((ref) {
                 name: RouteNames.editProfile,
                 pageBuilder: (context, state) => MaterialPage(
                   key: state.pageKey,
-                  child: Scaffold(
-                    appBar: AppBar(title: const Text('Edit Profile')),
-                    body: const Center(child: Text('Edit Profile Page')),
-                  ),
+                  child: const EditProfilePage(),
                 ),
               ),
               GoRoute(

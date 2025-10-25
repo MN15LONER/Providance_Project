@@ -146,8 +146,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                   const SizedBox(height: 24),
                   
                   // Error message
-                  if (authState.error != null)
-                    Container(
+                  authState.when(
+                    data: (_) => const SizedBox.shrink(),
+                    loading: () => const SizedBox.shrink(),
+                    error: (error, _) => Container(
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
@@ -156,26 +158,35 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         border: Border.all(color: AppColors.error),
                       ),
                       child: Text(
-                        authState.error.toString(),
+                        error.toString(),
                         style: const TextStyle(color: AppColors.error),
                       ),
                     ),
+                  ),
                   
                   // Login button
-                  ElevatedButton(
-                    onPressed: authState.isLoading ? null : _handleLogin,
-                    child: authState.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.white,
-                              ),
-                            ),
-                          )
-                        : const Text('Sign In'),
+                  authState.when(
+                    data: (_) => ElevatedButton(
+                      onPressed: _handleLogin,
+                      child: const Text('Sign In'),
+                    ),
+                    loading: () => ElevatedButton(
+                      onPressed: null,
+                      child: const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    error: (_, __) => ElevatedButton(
+                      onPressed: _handleLogin,
+                      child: const Text('Sign In'),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   

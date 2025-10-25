@@ -172,8 +172,10 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                   const SizedBox(height: 24),
                   
                   // Error message
-                  if (authState.error != null)
-                    Container(
+                  authState.when(
+                    data: (_) => const SizedBox.shrink(),
+                    loading: () => const SizedBox.shrink(),
+                    error: (error, _) => Container(
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
@@ -182,26 +184,35 @@ class _SignupPageState extends ConsumerState<SignupPage> {
                         border: Border.all(color: AppColors.error),
                       ),
                       child: Text(
-                        authState.error.toString(),
+                        error.toString(),
                         style: const TextStyle(color: AppColors.error),
                       ),
                     ),
+                  ),
                   
                   // Sign up button
-                  ElevatedButton(
-                    onPressed: authState.isLoading ? null : _handleSignup,
-                    child: authState.isLoading
-                        ? const SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.white,
-                              ),
-                            ),
-                          )
-                        : const Text('Sign Up'),
+                  authState.when(
+                    data: (_) => ElevatedButton(
+                      onPressed: _handleSignup,
+                      child: const Text('Sign Up'),
+                    ),
+                    loading: () => ElevatedButton(
+                      onPressed: null,
+                      child: const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            AppColors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                    error: (_, __) => ElevatedButton(
+                      onPressed: _handleSignup,
+                      child: const Text('Sign Up'),
+                    ),
                   ),
                   const SizedBox(height: 16),
                   
