@@ -116,6 +116,27 @@ class IssueRepository {
 
       final docRef = await _firestore.collection('issues').add(issueData);
 
+      // Award points for reporting an issue
+      try {
+        await _firestore.collection('users').doc(user.uid).update({
+          'points': FieldValue.increment(10),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        // Create points history entry
+        await _firestore.collection('points_history').add({
+          'userId': user.uid,
+          'points': 10,
+          'action': 'Reported an issue',
+          'referenceId': docRef.id,
+          'referenceType': 'issue',
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        // Don't fail the issue creation if points fail
+        print('Failed to award points: $e');
+      }
+
       return docRef.id;
     } catch (e) {
       if (e is Failure) rethrow;

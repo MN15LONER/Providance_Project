@@ -10,7 +10,7 @@ class ProfileService {
       // Fetch issues count
       final issuesQuery = await _firestore
           .collection('issues')
-          .where('createdBy', isEqualTo: userId)
+          .where('reportedBy', isEqualTo: userId)
           .get();
       
       final issuesCount = issuesQuery.docs.length;
