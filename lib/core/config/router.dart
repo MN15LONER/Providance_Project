@@ -22,6 +22,7 @@ import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../constants/route_constants.dart';
+import '../widgets/main_scaffold.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authControllerProvider);
@@ -53,7 +54,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      // Auth Routes
+      // Auth Routes (without bottom nav)
       GoRoute(
         path: Routes.login,
         name: RouteNames.login,
@@ -87,49 +88,89 @@ final routerProvider = Provider<GoRouter>((ref) {
         ),
       ),
       
-      // Main App Routes
-      GoRoute(
-        path: Routes.home,
-        name: RouteNames.home,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: const HomePage(),
-        ),
+      // Main App Routes with Bottom Navigation
+      ShellRoute(
+        builder: (context, state, child) {
+          return MainScaffold(
+            currentPath: state.matchedLocation,
+            child: child,
+          );
+        },
         routes: [
-          // Nested profile routes
+          // Home
           GoRoute(
-            path: 'profile',
+            path: Routes.home,
+            name: RouteNames.home,
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const HomePage(),
+            ),
+          ),
+          
+          // Issues List
+          GoRoute(
+            path: Routes.issuesList,
+            name: RouteNames.issuesList,
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const IssuesListPage(),
+            ),
+          ),
+          
+          // Ideas Hub
+          GoRoute(
+            path: Routes.ideasHub,
+            name: RouteNames.ideasHub,
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const IdeasHubPage(),
+            ),
+          ),
+          
+          // Map View
+          GoRoute(
+            path: Routes.mapView,
+            name: RouteNames.mapView,
+            pageBuilder: (context, state) => NoTransitionPage(
+              key: state.pageKey,
+              child: const MapViewPage(),
+            ),
+          ),
+          
+          // Profile
+          GoRoute(
+            path: Routes.profile,
             name: RouteNames.profile,
-            pageBuilder: (context, state) => MaterialPage(
+            pageBuilder: (context, state) => NoTransitionPage(
               key: state.pageKey,
               child: const ProfilePage(),
             ),
-            routes: [
-              GoRoute(
-                path: 'edit',
-                name: RouteNames.editProfile,
-                pageBuilder: (context, state) => MaterialPage(
-                  key: state.pageKey,
-                  child: const EditProfilePage(),
-                ),
-              ),
-              GoRoute(
-                path: 'contributions',
-                name: RouteNames.myContributions,
-                pageBuilder: (context, state) => MaterialPage(
-                  key: state.pageKey,
-                  child: Scaffold(
-                    appBar: AppBar(title: const Text('My Contributions')),
-                    body: const Center(child: Text('My Contributions Page')),
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),
       
-      // Issue Routes
+      // Secondary Routes (without bottom nav)
+      GoRoute(
+        path: Routes.editProfile,
+        name: RouteNames.editProfile,
+        pageBuilder: (context, state) => MaterialPage(
+          key: state.pageKey,
+          child: const EditProfilePage(),
+        ),
+      ),
+      GoRoute(
+        path: Routes.myContributions,
+        name: RouteNames.myContributions,
+        pageBuilder: (context, state) => MaterialPage(
+          key: state.pageKey,
+          child: Scaffold(
+            appBar: AppBar(title: const Text('My Contributions')),
+            body: const Center(child: Text('My Contributions Page')),
+          ),
+        ),
+      ),
+      
+      // Issue Routes (without bottom nav)
       GoRoute(
         path: Routes.reportIssue,
         name: RouteNames.reportIssue,
@@ -149,24 +190,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           );
         },
       ),
-      GoRoute(
-        path: Routes.issuesList,
-        name: RouteNames.issuesList,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: const IssuesListPage(),
-        ),
-      ),
       
-      // Ideas Routes
-      GoRoute(
-        path: Routes.ideasHub,
-        name: RouteNames.ideasHub,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: const IdeasHubPage(),
-        ),
-      ),
+      // Ideas Routes (without bottom nav)
       GoRoute(
         path: Routes.proposeIdea,
         name: RouteNames.proposeIdea,
@@ -187,7 +212,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       
-      // Settings Route
+      // Settings Route (without bottom nav)
       GoRoute(
         path: Routes.settings,
         name: RouteNames.settings,
@@ -197,16 +222,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             appBar: AppBar(title: const Text('Settings')),
             body: const Center(child: Text('Settings Page')),
           ),
-        ),
-      ),
-      
-      // Map Route
-      GoRoute(
-        path: Routes.mapView,
-        name: RouteNames.mapView,
-        pageBuilder: (context, state) => MaterialPage(
-          key: state.pageKey,
-          child: const MapViewPage(),
         ),
       ),
       

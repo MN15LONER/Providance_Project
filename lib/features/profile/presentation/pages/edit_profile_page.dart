@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'dart:io';
 import 'package:muni_report_pro/features/auth/presentation/providers/auth_provider.dart';
 import 'package:muni_report_pro/features/auth/presentation/providers/auth_controller.dart';
+import 'package:muni_report_pro/features/profile/presentation/providers/profile_provider.dart';
 import 'package:muni_report_pro/core/constants/route_constants.dart';
 import 'package:muni_report_pro/core/theme/app_colors.dart';
 import 'package:muni_report_pro/core/utils/validators.dart';
@@ -22,6 +26,8 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   String? _selectedRole;
   String? _selectedWard;
   String? _selectedMunicipality;
+  bool _isUploadingImage = false;
+  String? _newPhotoURL;
   
   final List<String> _municipalities = [
     'City of Johannesburg',
@@ -62,6 +68,61 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     _nameController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 75,
+      );
+
+      if (image == null) return;
+
+      setState(() => _isUploadingImage = true);
+
+      final currentFirebaseUser = ref.read(authControllerProvider).valueOrNull;
+      if (currentFirebaseUser == null) {
+        throw Exception('No user logged in');
+      }
+
+      // Upload to Firebase Storage
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('profile_pictures')
+          .child('${currentFirebaseUser.uid}.jpg');
+
+      final uploadTask = await storageRef.putFile(File(image.path));
+      final downloadUrl = await uploadTask.ref.getDownloadURL();
+
+      // Update user profile
+      final profileService = ref.read(profileServiceProvider);
+      await profileService.updateProfilePicture(currentFirebaseUser.uid, downloadUrl);
+
+      setState(() => _newPhotoURL = downloadUrl);
+
+      // Refresh user data
+      ref.invalidate(currentUserModelProvider);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Profile picture updated successfully')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update profile picture: ${e.toString()}')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isUploadingImage = false);
+      }
+    }
   }
 
   Future<void> _handleSave() async {
@@ -145,10 +206,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       children: [
                         CircleAvatar(
                           radius: 50,
-                          backgroundImage: user.photoURL != null
-                              ? NetworkImage(user.photoURL!)
+                          backgroundImage: (_newPhotoURL ?? user.photoURL) != null
+                              ? NetworkImage(_newPhotoURL ?? user.photoURL!)
                               : null,
-                          child: user.photoURL == null
+                          child: (_newPhotoURL ?? user.photoURL) == null
                               ? Text(
                                   user.displayName?.isNotEmpty == true
                                       ? user.displayName![0].toUpperCase()
@@ -157,6 +218,20 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                                 )
                               : null,
                         ),
+                        if (_isUploadingImage)
+                          Positioned.fill(
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Center(
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
                         Positioned(
                           bottom: 0,
                           right: 0,
@@ -166,13 +241,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                               shape: BoxShape.circle,
                             ),
                             child: IconButton(
-                              icon: const Icon(Icons.camera_alt, color: Colors.white),
-                              onPressed: () {
-                                // TODO: Implement photo upload
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Photo upload coming soon')),
-                                );
-                              },
+                              icon: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                              onPressed: _isUploadingImage ? null : _pickAndUploadImage,
+                              padding: const EdgeInsets.all(8),
+                              constraints: const BoxConstraints(),
                             ),
                           ),
                         ),
