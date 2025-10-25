@@ -114,6 +114,27 @@ class IdeaRepository {
 
       final docRef = await _firestore.collection('ideas').add(ideaData);
 
+      // Award points for proposing an idea
+      try {
+        await _firestore.collection('users').doc(user.uid).update({
+          'points': FieldValue.increment(15),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        // Create points history entry
+        await _firestore.collection('points_history').add({
+          'userId': user.uid,
+          'points': 15,
+          'action': 'Proposed an idea',
+          'referenceId': docRef.id,
+          'referenceType': 'idea',
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        // Don't fail the idea creation if points fail
+        print('Failed to award points: $e');
+      }
+
       return docRef.id;
     } catch (e) {
       if (e is Failure) rethrow;
