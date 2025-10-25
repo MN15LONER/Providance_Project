@@ -1,0 +1,185 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isOfficial() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'official';
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // Users collection
+    match /users/{userId} {
+      // Anyone can read user profiles (for display purposes)
+      allow read: if isAuthenticated();
+      
+      // Users can only create/update their own profile
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      allow update: if isOwner(userId);
+      
+      // Only admins can delete users
+      allow delete: if isAdmin();
+    }
+    
+    // Issues collection
+    match /issues/{issueId} {
+      // Anyone authenticated can read issues
+      allow read: if isAuthenticated();
+      
+      // Anyone authenticated can create issues
+      allow create: if isAuthenticated() && 
+                      request.resource.data.reportedBy == request.auth.uid;
+      
+      // Owner can update their own issues (before official response)
+      // Officials can update any issue
+      allow update: if isOwner(resource.data.reportedBy) || isOfficial() || isAdmin();
+      
+      // Only admins can delete issues
+      allow delete: if isAdmin();
+    }
+    
+    // Ideas collection
+    match /ideas/{ideaId} {
+      // Anyone authenticated can read ideas
+      allow read: if isAuthenticated();
+      
+      // Anyone authenticated can create ideas
+      allow create: if isAuthenticated() && 
+                      request.resource.data.proposedBy == request.auth.uid;
+      
+      // Owner can update their own ideas
+      // Officials can update ideas (to add responses)
+      allow update: if isOwner(resource.data.proposedBy) || isOfficial() || isAdmin();
+      
+      // Only owner or admin can delete
+      allow delete: if isOwner(resource.data.proposedBy) || isAdmin();
+    }
+    
+    // Votes collection (subcollection of ideas)
+    match /ideas/{ideaId}/votes/{voteId} {
+      // Anyone can read votes
+      allow read: if isAuthenticated();
+      
+      // Users can only create their own votes
+      allow create: if isAuthenticated() && request.auth.uid == voteId;
+      
+      // Users can update their own votes
+      allow update: if isOwner(voteId);
+      
+      // Users can delete their own votes
+      allow delete: if isOwner(voteId);
+    }
+    
+    // Verifications collection (subcollection of issues)
+    match /issues/{issueId}/verifications/{verificationId} {
+      // Anyone can read verifications
+      allow read: if isAuthenticated();
+      
+      // Users can create verifications (one per issue)
+      allow create: if isAuthenticated() && 
+                      request.resource.data.verifiedBy == request.auth.uid;
+      
+      // Users cannot update verifications (immutable)
+      allow update: if false;
+      
+      // Only the user who created it can delete
+      allow delete: if isOwner(resource.data.verifiedBy);
+    }
+    
+    // Comments collection (subcollection of ideas)
+    match /ideas/{ideaId}/comments/{commentId} {
+      // Anyone can read comments
+      allow read: if isAuthenticated();
+      
+      // Anyone can create comments
+      allow create: if isAuthenticated() && 
+                      request.resource.data.userId == request.auth.uid;
+      
+      // Owner can update their own comments
+      allow update: if isOwner(resource.data.userId);
+      
+      // Owner or admin can delete comments
+      allow delete: if isOwner(resource.data.userId) || isAdmin();
+    }
+    
+    // Announcements collection
+    match /announcements/{announcementId} {
+      // Anyone can read announcements
+      allow read: if isAuthenticated();
+      
+      // Only officials and admins can create announcements
+      allow create: if isOfficial() || isAdmin();
+      
+      // Only officials and admins can update announcements
+      allow update: if isOfficial() || isAdmin();
+      
+      // Only admins can delete announcements
+      allow delete: if isAdmin();
+    }
+    
+    // Notifications collection (subcollection of users)
+    match /users/{userId}/notifications/{notificationId} {
+      // Users can only read their own notifications
+      allow read: if isOwner(userId);
+      
+      // System can create notifications (via Cloud Functions)
+      // Officials can create notifications
+      allow create: if isOfficial() || isAdmin();
+      
+      // Users can update their own notifications (mark as read)
+      allow update: if isOwner(userId);
+      
+      // Users can delete their own notifications
+      allow delete: if isOwner(userId);
+    }
+    
+    // Points History (subcollection of users)
+    match /users/{userId}/pointsHistory/{historyId} {
+      // Users can read their own points history
+      allow read: if isOwner(userId);
+      
+      // Only system can create points history (via Cloud Functions)
+      allow create: if false;
+      
+      // No updates or deletes allowed
+      allow update, delete: if false;
+    }
+    
+    // Achievements (subcollection of users)
+    match /users/{userId}/achievements/{achievementId} {
+      // Users can read their own achievements
+      allow read: if isOwner(userId);
+      
+      // Only system can create achievements (via Cloud Functions)
+      allow create: if false;
+      
+      // No updates or deletes allowed
+      allow update, delete: if false;
+    }
+    
+    // Analytics collection (admin only)
+    match /analytics/{document=**} {
+      allow read: if isAdmin();
+      allow write: if false; // Only Cloud Functions can write
+    }
+    
+    // Default deny all other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
