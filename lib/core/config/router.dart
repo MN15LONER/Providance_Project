@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,7 +6,7 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/signup_page.dart';
 import '../../features/auth/presentation/pages/role_selection_page.dart';
 import '../../features/auth/presentation/pages/profile_setup_page.dart';
-import '../../features/auth/presentation/providers/auth_controller.dart';
+import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/issues/presentation/pages/report_issue_page.dart';
 import '../../features/issues/presentation/pages/issue_detail_page.dart';
@@ -27,32 +28,74 @@ import '../constants/route_constants.dart';
 import '../widgets/main_scaffold.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authControllerProvider);
+  // Create a notifier that triggers when auth state changes
+  final notifier = ValueNotifier<int>(0);
+  
+  // Listen to auth state changes and trigger router refresh
+  ref.listen(currentUserModelProvider, (previous, next) {
+    print('🔔 Auth state changed! Previous user: ${previous?.valueOrNull?.email}, New user: ${next.valueOrNull?.email}');
+    notifier.value++;
+  });
   
   return GoRouter(
     initialLocation: Routes.login,
     debugLogDiagnostics: true,
+    refreshListenable: notifier,
     redirect: (context, state) {
+      // Get fresh auth state on every redirect check
+      final authState = ref.read(currentUserModelProvider);
+      
       // Handle loading state
-      if (authState.isLoading) return null;
+      if (authState.isLoading) {
+        print('🔄 Router: Auth state is loading...');
+        return null;
+      }
 
-      // Get the current user from auth state
+      // Get the current user from auth state (now using UserModel with role field)
       final user = authState.valueOrNull;
       final isLoggedIn = user != null;
       final isAuthRoute = state.matchedLocation == Routes.login ||
           state.matchedLocation == Routes.signup;
+      final isAdminRoute = state.matchedLocation == Routes.adminDashboard;
+
+      print('🔍 Router redirect check:');
+      print('   - Current location: ${state.matchedLocation}');
+      print('   - User logged in: $isLoggedIn');
+      print('   - User role: ${user?.role ?? "none"}');
+      print('   - Is auth route: $isAuthRoute');
+      print('   - Is admin route: $isAdminRoute');
 
       // If user is not logged in and not on an auth route, redirect to login
       if (!isLoggedIn && !isAuthRoute) {
+        print('   ➡️ Redirecting to login (not logged in)');
         return Routes.login;
       }
 
-      // If user is logged in and on an auth route, redirect to home
+      // If user is logged in and on an auth route, redirect based on role
       if (isLoggedIn && isAuthRoute) {
+        // Check if user is admin
+        if (user.role == 'admin') {
+          print('   ➡️ Redirecting to admin dashboard (admin user on auth route)');
+          return Routes.adminDashboard;
+        }
+        print('   ➡️ Redirecting to home (regular user on auth route)');
+        return Routes.home;
+      }
+
+      // If user is admin and trying to access regular home, redirect to admin dashboard
+      if (isLoggedIn && user.role == 'admin' && state.matchedLocation == Routes.home) {
+        print('   ➡️ Redirecting admin from home to admin dashboard');
+        return Routes.adminDashboard;
+      }
+
+      // If user is not admin and trying to access admin dashboard, redirect to home
+      if (isLoggedIn && user.role != 'admin' && isAdminRoute) {
+        print('   ➡️ Redirecting non-admin from admin dashboard to home');
         return Routes.home;
       }
 
       // No redirect needed
+      print('   ✅ No redirect needed');
       return null;
     },
     routes: [

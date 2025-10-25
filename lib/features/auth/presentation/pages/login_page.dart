@@ -36,10 +36,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         _passwordController.text.trim(),
       );
       
-      if (mounted) {
-        print('🚀 Navigation to home screen...');
-        context.go(Routes.home);
-      }
+      // Don't navigate manually - let the router's redirect logic handle it
+      // The router will check the user's role and redirect to the appropriate page
+      print('✅ Login successful - router will handle navigation based on role');
     } catch (e) {
       print('❌ Login error: $e');
       if (mounted) {
