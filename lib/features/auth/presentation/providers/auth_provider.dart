@@ -6,36 +6,40 @@ import '../../data/repositories/auth_repository_impl.dart';
 
 /// Current user model provider that fetches full user data from Firestore
 final currentUserModelProvider = StreamProvider<UserModel?>((ref) {
-  final firebaseUser = firebase_auth.FirebaseAuth.instance.currentUser;
-  
-  if (firebaseUser == null) {
-    return Stream.value(null);
-  }
-  
-  return FirebaseFirestore.instance
-      .collection('users')
-      .doc(firebaseUser.uid)
-      .snapshots()
-      .map((doc) {
-        if (!doc.exists || doc.data() == null) return null;
+  return firebase_auth.FirebaseAuth.instance
+      .authStateChanges()
+      .asyncMap((firebaseUser) async {
+        if (firebaseUser == null) return null;
         
-        final data = doc.data()!;
-        return UserModel(
-          uid: doc.id,
-          email: data['email'] as String? ?? '',
-          displayName: data['displayName'] as String? ?? '',
-          phoneNumber: data['phoneNumber'] as String?,
-          role: data['role'] as String? ?? 'citizen',
-          ward: data['ward'] as String?,
-          municipality: data['municipality'] as String?,
-          photoURL: data['photoURL'] as String?,
-          points: (data['points'] as int?) ?? 0,
-          createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-          updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
-          isActive: (data['isActive'] as bool?) ?? true,
-          notificationTokens: List<String>.from(data['notificationTokens'] as List? ?? []),
-          achievements: List<String>.from(data['achievements'] as List? ?? []),
-        );
+        try {
+          final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(firebaseUser.uid)
+            .get();
+        
+          if (!doc.exists || doc.data() == null) return null;
+          
+          final data = doc.data()!;
+          return UserModel(
+            uid: doc.id,
+            email: data['email'] as String? ?? firebaseUser.email ?? '',
+            displayName: data['displayName'] as String? ?? firebaseUser.displayName ?? '',
+            phoneNumber: data['phoneNumber'] as String?,
+            role: data['role'] as String? ?? 'citizen',
+            ward: data['ward'] as String?,
+            municipality: data['municipality'] as String?,
+            photoURL: data['photoURL'] as String? ?? firebaseUser.photoURL,
+            points: (data['points'] as int?) ?? 0,
+            createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+            updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+            isActive: (data['isActive'] as bool?) ?? true,
+            notificationTokens: List<String>.from(data['notificationTokens'] as List? ?? []),
+            achievements: List<String>.from(data['achievements'] as List? ?? []),
+          );
+        } catch (e) {
+          print('Error fetching user data: $e');
+          return null;
+        }
       });
 });
 

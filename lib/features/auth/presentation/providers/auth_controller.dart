@@ -28,20 +28,19 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
   }
 
   Future<void> signIn(String email, String password) async {
-    try {
-      state = const AsyncValue.loading();
+    state = const AsyncValue.loading();
+    
+    state = await AsyncValue.guard(() async {
       await _authRepository.signIn(email, password);
       final user = await _authRepository.getCurrentUser();
-      state = AsyncValue.data(user);
-    } catch (e, stackTrace) {
-      state = AsyncValue.error(e, stackTrace);
-      rethrow;
-    }
+      return user;
+    });
   }
 
   Future<void> signUp(String email, String password) async {
-    try {
-      state = const AsyncValue.loading();
+    state = const AsyncValue.loading();
+    
+    state = await AsyncValue.guard(() async {
       await _authRepository.signUp(email, password);
       final user = await _authRepository.getCurrentUser();
       if (user != null) {
@@ -54,43 +53,36 @@ class AuthController extends StateNotifier<AsyncValue<User?>> {
           null,
         );
       }
-      state = AsyncValue.data(user);
-    } catch (e, stackTrace) {
-      state = AsyncValue.error(e, stackTrace);
-      rethrow;
-    }
+      return user;
+    });
   }
 
   Future<void> signOut() async {
-    try {
-      state = const AsyncValue.loading();
+    state = const AsyncValue.loading();
+    
+    state = await AsyncValue.guard(() async {
       await _authRepository.signOut();
-      state = const AsyncValue.data(null);
-    } catch (e, stackTrace) {
-      state = AsyncValue.error(e, stackTrace);
-      rethrow;
-    }
+      return null;
+    });
   }
 
   Future<void> signInWithGoogle() async {
     state = const AsyncValue.loading();
-    try {
+    
+    state = await AsyncValue.guard(() async {
       await _authRepository.signInWithGoogle();
       final user = await _authRepository.getCurrentUser();
-      state = AsyncValue.data(user);
-    } catch (e, stackTrace) {
-      state = AsyncValue.error(e.toString(), stackTrace);
-      rethrow;
-    }
+      return user;
+    });
   }
 
   Future<void> resetPassword(String email) async {
-    try {
+    state = const AsyncValue.loading();
+    
+    state = await AsyncValue.guard(() async {
       await _authRepository.resetPassword(email);
-    } catch (e, stackTrace) {
-      state = AsyncValue.error(e.toString(), stackTrace);
-      rethrow;
-    }
+      return null;
+    });
   }
 
   Future<void> completeProfileSetup(
