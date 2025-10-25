@@ -206,9 +206,9 @@ class _PointHistoryTile extends StatelessWidget {
                 onPressed: () {
                   // Navigate to reference
                   if (item.referenceType == 'issue') {
-                    context.push('/issues/${item.referenceId}');
+                    context.push('/issue/${item.referenceId}');
                   } else if (item.referenceType == 'idea') {
-                    context.push('/ideas/${item.referenceId}');
+                    context.push('/idea/${item.referenceId}');
                   }
                 },
                 tooltip: 'View details',

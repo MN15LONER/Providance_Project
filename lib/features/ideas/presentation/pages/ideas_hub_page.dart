@@ -26,7 +26,6 @@ class _IdeasHubPageState extends ConsumerState<IdeasHubPage> {
   String? _selectedCategory;
   String? _selectedStatus;
   String _sortBy = 'voteCount'; // voteCount, createdAt, commentCount
-  bool _isGridView = false;
   String _searchQuery = '';
 
   @override
@@ -42,17 +41,6 @@ class _IdeasHubPageState extends ConsumerState<IdeasHubPage> {
       appBar: AppBar(
         title: const Text('Ideas Hub'),
         actions: [
-          // View toggle (grid/list)
-          IconButton(
-            icon: Icon(_isGridView ? Icons.view_list : Icons.grid_view),
-            onPressed: () {
-              setState(() {
-                _isGridView = !_isGridView;
-              });
-            },
-            tooltip: _isGridView ? 'List view' : 'Grid view',
-          ),
-          
           // Search
           IconButton(
             icon: const Icon(Icons.search),
@@ -247,30 +235,16 @@ class _IdeasHubPageState extends ConsumerState<IdeasHubPage> {
                     // Refresh is automatic with StreamProvider
                     await Future.delayed(const Duration(seconds: 1));
                   },
-                  child: _isGridView
-                      ? GridView.builder(
-                          padding: const EdgeInsets.all(16),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.75,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                          itemCount: filteredIdeas.length,
-                          itemBuilder: (context, index) {
-                            return IdeaCard(idea: filteredIdeas[index]);
-                          },
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: filteredIdeas.length,
-                          itemBuilder: (context, index) {
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 16),
-                              child: IdeaCard(idea: filteredIdeas[index]),
-                            );
-                          },
-                        ),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: filteredIdeas.length,
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: IdeaCard(idea: filteredIdeas[index]),
+                      );
+                    },
+                  ),
                 );
               },
               loading: () => const Center(

@@ -293,10 +293,10 @@ class NotificationTile extends ConsumerWidget {
 
   void _navigateToRelated(BuildContext context, NotificationEntity notification) {
     if (notification.relatedType == 'issue' && notification.relatedId != null) {
-      context.push('/issues/${notification.relatedId}');
+      context.push('/issue/${notification.relatedId}');
     } else if (notification.relatedType == 'idea' &&
         notification.relatedId != null) {
-      context.push('/ideas/${notification.relatedId}');
+      context.push('/idea/${notification.relatedId}');
     } else if (notification.type == 'announcement') {
       context.push('/announcements');
     }

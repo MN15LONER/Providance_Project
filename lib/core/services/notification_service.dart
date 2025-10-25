@@ -213,14 +213,14 @@ class NotificationService {
         case 'verification_milestone':
           if (relatedId != null) {
             // Navigate to issue detail
-            context.push('/issues/$relatedId');
+            context.push('/issue/$relatedId');
           }
           break;
         case 'idea_milestone':
         case 'idea_response':
           if (relatedId != null) {
             // Navigate to idea detail
-            context.push('/ideas/$relatedId');
+            context.push('/idea/$relatedId');
           }
           break;
         case 'announcement':
@@ -229,9 +229,9 @@ class NotificationService {
           break;
         case 'comment':
           if (relatedType == 'issue' && relatedId != null) {
-            context.push('/issues/$relatedId');
+            context.push('/issue/$relatedId');
           } else if (relatedType == 'idea' && relatedId != null) {
-            context.push('/ideas/$relatedId');
+            context.push('/idea/$relatedId');
           }
           break;
         default:

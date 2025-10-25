@@ -200,8 +200,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         leading: const Icon(Icons.person, color: AppColors.primary),
                         title: const Text('Full Name'),
                         subtitle: Text(user.displayName ?? 'Not provided'),
-                        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () => context.go(Routes.editProfile),
                       ),
                       const Divider(height: 1),
                       ListTile(
@@ -217,12 +215,6 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           subtitle: Text(user.phoneNumber!),
                         ),
                       ],
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: const Icon(Icons.badge, color: AppColors.primary),
-                        title: const Text('Role'),
-                        subtitle: Text(user.role?.toUpperCase() ?? 'CITIZEN'),
-                      ),
                       if (user.municipality != null) ...[
                         const Divider(height: 1),
                         ListTile(
@@ -261,7 +253,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         title: const Text('Edit Profile'),
                         subtitle: const Text('Update your personal information'),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () => context.go(Routes.editProfile),
+                        onTap: () => context.push(Routes.editProfile),
                       ),
                       const Divider(height: 1),
                       ListTile(
@@ -277,7 +269,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         title: const Text('My Contributions'),
                         subtitle: const Text('View your reports and ideas'),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () => context.go(Routes.myContributions),
+                        onTap: () => context.push(Routes.myContributions),
                       ),
                       const Divider(height: 1),
                       ListTile(
@@ -285,7 +277,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                         title: const Text('Settings'),
                         subtitle: const Text('App preferences and notifications'),
                         trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                        onTap: () => context.go(Routes.settings),
+                        onTap: () => context.push(Routes.settings),
                       ),
                     ],
                   ),
@@ -344,18 +336,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
       if (image == null) return;
 
+      if (!mounted) return;
       setState(() => _isUploadingImage = true);
 
-      // Upload to Firebase Storage
+      // Upload to Firebase Storage - path: /users/{userId}/profile/profile.jpg
       final storageRef = FirebaseStorage.instance
           .ref()
-          .child('profile_pictures')
-          .child('$userId.jpg');
+          .child('users')
+          .child(userId)
+          .child('profile')
+          .child('profile.jpg');
 
-      final uploadTask = await storageRef.putFile(File(image.path));
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      // Use putFile with metadata
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {'uploadedBy': userId},
+      );
 
-      // Update user profile
+      final uploadTask = storageRef.putFile(File(image.path), metadata);
+      
+      // Wait for upload to complete
+      final snapshot = await uploadTask.whenComplete(() {});
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      // Update user profile in Firestore
       final profileService = ref.read(profileServiceProvider);
       await profileService.updateProfilePicture(userId, downloadUrl);
 
@@ -364,13 +368,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile picture updated successfully')),
+          const SnackBar(
+            content: Text('Profile picture updated successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
+      print('Error uploading profile picture: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile picture: ${e.toString()}')),
+          SnackBar(
+            content: Text('Failed to update profile picture: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {

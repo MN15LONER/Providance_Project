@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/config/router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/notification_service.dart';
+import 'features/profile/presentation/pages/settings_page.dart';
 
 class MuniReportProApp extends ConsumerStatefulWidget {
   const MuniReportProApp({super.key});
@@ -15,13 +16,14 @@ class _MuniReportProAppState extends ConsumerState<MuniReportProApp> {
   @override
   Widget build(BuildContext context) {
     final router = ref.watch(routerProvider);
+    final themeMode = ref.watch(themeModeProvider);
     
     return MaterialApp.router(
       title: 'Muni-Report Pro',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: themeMode,
       routerConfig: router,
       // Add navigator key for notification navigation
       builder: (context, child) {

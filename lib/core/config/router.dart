@@ -21,6 +21,8 @@ import '../../features/gamification/presentation/pages/points_history_page.dart'
 import '../../features/admin/presentation/pages/admin_dashboard_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
+import '../../features/profile/presentation/pages/my_contributions_page.dart';
+import '../../features/profile/presentation/pages/settings_page.dart';
 import '../constants/route_constants.dart';
 import '../widgets/main_scaffold.dart';
 
@@ -163,10 +165,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: RouteNames.myContributions,
         pageBuilder: (context, state) => MaterialPage(
           key: state.pageKey,
-          child: Scaffold(
-            appBar: AppBar(title: const Text('My Contributions')),
-            body: const Center(child: Text('My Contributions Page')),
-          ),
+          child: const MyContributionsPage(),
         ),
       ),
       
@@ -218,10 +217,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         name: RouteNames.settings,
         pageBuilder: (context, state) => MaterialPage(
           key: state.pageKey,
-          child: Scaffold(
-            appBar: AppBar(title: const Text('Settings')),
-            body: const Center(child: Text('Settings Page')),
-          ),
+          child: const SettingsPage(),
         ),
       ),
       

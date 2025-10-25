@@ -82,6 +82,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
       if (image == null) return;
 
+      if (!mounted) return;
       setState(() => _isUploadingImage = true);
 
       final currentFirebaseUser = ref.read(authControllerProvider).valueOrNull;
@@ -89,16 +90,27 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         throw Exception('No user logged in');
       }
 
-      // Upload to Firebase Storage
+      // Upload to Firebase Storage - path: /users/{userId}/profile/profile.jpg
       final storageRef = FirebaseStorage.instance
           .ref()
-          .child('profile_pictures')
-          .child('${currentFirebaseUser.uid}.jpg');
+          .child('users')
+          .child(currentFirebaseUser.uid)
+          .child('profile')
+          .child('profile.jpg');
 
-      final uploadTask = await storageRef.putFile(File(image.path));
-      final downloadUrl = await uploadTask.ref.getDownloadURL();
+      // Use putFile with metadata
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {'uploadedBy': currentFirebaseUser.uid},
+      );
 
-      // Update user profile
+      final uploadTask = storageRef.putFile(File(image.path), metadata);
+      
+      // Wait for upload to complete
+      final snapshot = await uploadTask.whenComplete(() {});
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      // Update user profile in Firestore
       final profileService = ref.read(profileServiceProvider);
       await profileService.updateProfilePicture(currentFirebaseUser.uid, downloadUrl);
 
@@ -109,13 +121,20 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile picture updated successfully')),
+          const SnackBar(
+            content: Text('Profile picture updated successfully'),
+            backgroundColor: Colors.green,
+          ),
         );
       }
     } catch (e) {
+      print('Error uploading profile picture: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile picture: ${e.toString()}')),
+          SnackBar(
+            content: Text('Failed to update profile picture: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } finally {
@@ -140,14 +159,18 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         return;
       }
 
-      await ref.read(authControllerProvider.notifier).completeProfileSetup(
-        currentFirebaseUser.uid,
-        _nameController.text.trim(),
-        _phoneController.text.trim(),
-        _selectedRole ?? 'citizen',
-        _selectedWard,
-        _selectedMunicipality,
+      // Use profile service to update user data
+      final profileService = ref.read(profileServiceProvider);
+      await profileService.updateUserProfile(
+        userId: currentFirebaseUser.uid,
+        displayName: _nameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        ward: _selectedWard,
+        municipality: _selectedMunicipality,
       );
+      
+      // Refresh user data
+      ref.invalidate(currentUserModelProvider);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -275,24 +298,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     ),
                     keyboardType: TextInputType.phone,
                     validator: Validators.phoneNumber,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Role field
-                  DropdownButtonFormField<String>(
-                    value: _selectedRole,
-                    decoration: const InputDecoration(
-                      labelText: 'Role',
-                      border: OutlineInputBorder(),
-                      prefixIcon: Icon(Icons.badge),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'citizen', child: Text('Citizen')),
-                      DropdownMenuItem(value: 'official', child: Text('Government Official')),
-                    ],
-                    onChanged: (value) {
-                      setState(() => _selectedRole = value);
-                    },
                   ),
                   const SizedBox(height: 16),
 

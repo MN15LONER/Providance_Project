@@ -215,7 +215,7 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
           backgroundColor: Colors.green,
         ),
       );
-      context.go('/issues/$issueId');
+      context.go('${Routes.issueDetail}/$issueId');
     }
   }
 
