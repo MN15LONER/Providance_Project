@@ -34,6 +34,11 @@ class Routes {
   static const String leaderboard = '/leaderboard';
   static const String pointsHistory = '/points-history';
   
+  // Discussion Routes
+  static const String discussions = '/discussions';
+  static const String newDiscussion = '/discussions/new';
+  static const String discussionDetail = '/discussions/:id';
+  
   // Admin Routes
   static const String adminDashboard = '/admin';
 }
@@ -73,6 +78,11 @@ class RouteNames {
   // Gamification Routes
   static const String leaderboard = 'leaderboard';
   static const String pointsHistory = 'pointsHistory';
+  
+  // Discussion Routes
+  static const String discussions = 'discussions';
+  static const String newDiscussion = 'newDiscussion';
+  static const String discussionDetail = 'discussionDetail';
   
   // Admin Routes
   static const String adminDashboard = 'adminDashboard';

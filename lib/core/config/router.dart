@@ -24,6 +24,9 @@ import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/profile/presentation/pages/my_contributions_page.dart';
 import '../../features/profile/presentation/pages/settings_page.dart';
+import '../../features/discussions/presentation/pages/discussions_page.dart';
+import '../../features/discussions/presentation/pages/discussion_detail_page.dart';
+import '../../features/discussions/presentation/pages/new_discussion_page.dart';
 import '../constants/route_constants.dart';
 import '../widgets/main_scaffold.dart';
 
@@ -298,6 +301,35 @@ final routerProvider = Provider<GoRouter>((ref) {
           key: state.pageKey,
           child: const PointsHistoryPage(),
         ),
+      ),
+      
+      // Discussion Routes
+      GoRoute(
+        path: Routes.discussions,
+        name: RouteNames.discussions,
+        pageBuilder: (context, state) => MaterialPage(
+          key: state.pageKey,
+          child: const DiscussionsPage(),
+        ),
+      ),
+      GoRoute(
+        path: Routes.newDiscussion,
+        name: RouteNames.newDiscussion,
+        pageBuilder: (context, state) => MaterialPage(
+          key: state.pageKey,
+          child: const NewDiscussionPage(),
+        ),
+      ),
+      GoRoute(
+        path: '${Routes.discussions}/:id',
+        name: RouteNames.discussionDetail,
+        pageBuilder: (context, state) {
+          final discussionId = state.pathParameters['id']!;
+          return MaterialPage(
+            key: state.pageKey,
+            child: DiscussionDetailPage(discussionId: discussionId),
+          );
+        },
       ),
       
       // Admin Routes

@@ -177,6 +177,39 @@ service cloud.firestore {
       allow write: if false; // Only Cloud Functions can write
     }
     
+    // Discussions collection
+    match /discussions/{discussionId} {
+      // Anyone authenticated can read discussions
+      allow read: if isAuthenticated();
+      
+      // Anyone authenticated can create discussions
+      allow create: if isAuthenticated() && 
+                      request.resource.data.authorId == request.auth.uid;
+      
+      // Owner can update their own discussions
+      // Admins can update any discussion
+      allow update: if isOwner(resource.data.authorId) || isAdmin();
+      
+      // Owner or admin can delete (soft delete)
+      allow delete: if isOwner(resource.data.authorId) || isAdmin();
+    }
+    
+    // Discussion Comments collection
+    match /discussion_comments/{commentId} {
+      // Anyone authenticated can read comments
+      allow read: if isAuthenticated();
+      
+      // Anyone authenticated can create comments
+      allow create: if isAuthenticated() && 
+                      request.resource.data.authorId == request.auth.uid;
+      
+      // Owner can update their own comments
+      allow update: if isOwner(resource.data.authorId);
+      
+      // Owner or admin can delete comments
+      allow delete: if isOwner(resource.data.authorId) || isAdmin();
+    }
+    
     // Default deny all other collections
     match /{document=**} {
       allow read, write: if false;

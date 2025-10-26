@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -112,17 +113,23 @@ class HomePage extends ConsumerWidget {
                             ],
                           ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '${user.points} pts',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
+                        SizedBox(
+                          width: 70,
+                          height: 70,
+                          child: CustomPaint(
+                            painter: _StarPainter(color: AppColors.primary),
+                            child: Center(
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(
+                                  '${user.points}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -160,6 +167,12 @@ class HomePage extends ConsumerWidget {
                       icon: Icons.list_alt,
                       color: Colors.orange,
                       onTap: () => context.go(Routes.issuesList),
+                    ),
+                    _QuickActionCard(
+                      title: 'Community',
+                      icon: Icons.forum,
+                      color: Colors.purple,
+                      onTap: () => context.go(Routes.discussions),
                     ),
                     _QuickActionCard(
                       title: 'Ideas Hub',
@@ -296,3 +309,47 @@ class _QuickActionCard extends StatelessWidget {
   }
 }
 
+/// Custom painter to draw a star shape
+class _StarPainter extends CustomPainter {
+  final Color color;
+
+  _StarPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final path = Path();
+    final centerX = size.width / 2;
+    final centerY = size.height / 2;
+    final outerRadius = size.width / 2;
+    final innerRadius = outerRadius * 0.4;
+
+    // Draw a 5-pointed star
+    for (int i = 0; i < 5; i++) {
+      final outerAngle = (i * 72 - 90) * 3.14159 / 180;
+      final innerAngle = ((i * 72) + 36 - 90) * 3.14159 / 180;
+
+      final outerX = centerX + outerRadius * cos(outerAngle);
+      final outerY = centerY + outerRadius * sin(outerAngle);
+
+      if (i == 0) {
+        path.moveTo(outerX, outerY);
+      } else {
+        path.lineTo(outerX, outerY);
+      }
+
+      final innerX = centerX + innerRadius * cos(innerAngle);
+      final innerY = centerY + innerRadius * sin(innerAngle);
+      path.lineTo(innerX, innerY);
+    }
+
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
