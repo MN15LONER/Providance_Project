@@ -2,10 +2,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import 'package:muni_report_pro/features/auth/presentation/providers/auth_provider.dart';
 import 'package:muni_report_pro/features/auth/presentation/providers/auth_controller.dart';
 import 'package:muni_report_pro/core/constants/route_constants.dart';
 import 'package:muni_report_pro/core/theme/app_colors.dart';
+import 'package:muni_report_pro/features/announcements/presentation/providers/announcements_provider.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -137,6 +139,26 @@ class HomePage extends ConsumerWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 24),
+                
+                // Announcements Section
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Announcements',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => context.go(Routes.announcements),
+                      child: const Text('View All'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _AnnouncementsSection(),
                 const SizedBox(height: 24),
                 
                 // Quick Actions
@@ -352,4 +374,183 @@ class _StarPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+/// Announcements section widget
+class _AnnouncementsSection extends ConsumerWidget {
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final announcementsAsync = ref.watch(announcementsProvider);
+
+    return announcementsAsync.when(
+      data: (announcements) {
+        if (announcements.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.campaign_outlined,
+                      size: 48,
+                      color: Colors.grey[400],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No announcements yet',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
+        // Show only the first 3 announcements
+        final recentAnnouncements = announcements.take(3).toList();
+
+        return Column(
+          children: recentAnnouncements.map((announcement) {
+            return _AnnouncementCard(announcement: announcement);
+          }).toList(),
+        );
+      },
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (error, stackTrace) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Error loading announcements',
+            style: TextStyle(color: Colors.red[700]),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Individual announcement card widget
+class _AnnouncementCard extends StatelessWidget {
+  final dynamic announcement;
+
+  const _AnnouncementCard({required this.announcement});
+
+  Color _getTypeColor(String type) {
+    switch (type) {
+      case 'emergency':
+        return Colors.red;
+      case 'maintenance':
+        return Colors.orange;
+      case 'meeting':
+        return Colors.blue;
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  IconData _getTypeIcon(String type) {
+    switch (type) {
+      case 'emergency':
+        return Icons.warning;
+      case 'maintenance':
+        return Icons.build;
+      case 'meeting':
+        return Icons.event;
+      default:
+        return Icons.campaign;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final typeColor = _getTypeColor(announcement.type);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: typeColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    _getTypeIcon(announcement.type),
+                    color: typeColor,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        announcement.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        timeago.format(announcement.createdAt),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: typeColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    announcement.type.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: typeColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              announcement.message,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+              ),
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

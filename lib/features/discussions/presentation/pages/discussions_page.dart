@@ -14,16 +14,21 @@ class DiscussionsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final discussionsAsync = ref.watch(discussionsProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Community Discussions'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => ref.invalidate(discussionsProvider),
-          ),
-        ],
-      ),
+    return WillPopScope(
+      onWillPop: () async {
+        context.go(Routes.home);
+        return false;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Community Discussions'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: () => ref.invalidate(discussionsProvider),
+            ),
+          ],
+        ),
       body: discussionsAsync.when(
         data: (discussions) {
           if (discussions.isEmpty) {
@@ -97,6 +102,7 @@ class DiscussionsPage extends ConsumerWidget {
         onPressed: () => context.push(Routes.newDiscussion),
         icon: const Icon(Icons.add),
         label: const Text('New Discussion'),
+      ),
       ),
     );
   }
