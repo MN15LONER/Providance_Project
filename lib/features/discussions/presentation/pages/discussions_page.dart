@@ -14,10 +14,12 @@ class DiscussionsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final discussionsAsync = ref.watch(discussionsProvider);
 
-    return WillPopScope(
-      onWillPop: () async {
-        context.go(Routes.home);
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          context.go(Routes.home);
+        }
       },
       child: Scaffold(
         appBar: AppBar(

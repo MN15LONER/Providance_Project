@@ -13,10 +13,12 @@ class AnnouncementsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final announcementsAsync = ref.watch(announcementsProvider);
 
-    return WillPopScope(
-      onWillPop: () async {
-        context.go(Routes.home);
-        return false;
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          context.go(Routes.home);
+        }
       },
       child: Scaffold(
         appBar: AppBar(
@@ -205,7 +207,7 @@ class _AnnouncementCard extends StatelessWidget {
                 height: 1.5,
               ),
             ),
-            if (announcement.ward != null) ..[
+            if (announcement.ward != null) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -224,7 +226,7 @@ class _AnnouncementCard extends StatelessWidget {
                   ),
                 ],
               ),
-            ],
+            ]
           ],
         ),
       ),

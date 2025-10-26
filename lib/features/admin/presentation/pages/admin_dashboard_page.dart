@@ -35,52 +35,41 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
           ),
         ],
       ),
-      body: Row(
+      body: IndexedStack(
+        index: _selectedIndex,
         children: [
-          // Sidebar navigation
-          NavigationRail(
-            selectedIndex: _selectedIndex,
-            onDestinationSelected: (index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
-            labelType: NavigationRailLabelType.all,
-            backgroundColor: Colors.grey[100],
-            selectedIconTheme: const IconThemeData(color: AppColors.primary),
-            selectedLabelTextStyle: const TextStyle(color: AppColors.primary),
-            destinations: const [
-              NavigationRailDestination(
-                icon: Icon(Icons.dashboard),
-                label: Text('Overview'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.campaign),
-                label: Text('Announcements'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.lightbulb),
-                label: Text('Ideas Review'),
-              ),
-              NavigationRailDestination(
-                icon: Icon(Icons.report_problem),
-                label: Text('Issues'),
-              ),
-            ],
+          _buildOverviewTab(statsAsync),
+          _buildAnnouncementsTab(),
+          _buildIdeasReviewTab(),
+          _buildIssuesTab(),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        type: BottomNavigationBarType.fixed,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.dashboard),
+            label: 'Overview',
           ),
-          const VerticalDivider(thickness: 1, width: 1),
-          
-          // Main content
-          Expanded(
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: [
-                _buildOverviewTab(statsAsync),
-                _buildAnnouncementsTab(),
-                _buildIdeasReviewTab(),
-                _buildIssuesTab(),
-              ],
-            ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.campaign),
+            label: 'Announcements',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.lightbulb),
+            label: 'Ideas',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.report_problem),
+            label: 'Issues',
           ),
         ],
       ),
@@ -286,20 +275,23 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             children: [
               const Icon(Icons.campaign, color: AppColors.primary),
               const SizedBox(width: 8),
-              Text(
-                'Announcements',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+              Expanded(
+                child: Text(
+                  'Announcements',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
               ),
-              const Spacer(),
+              const SizedBox(width: 8),
               ElevatedButton.icon(
                 onPressed: () => _showCreateAnnouncementDialog(context),
-                icon: const Icon(Icons.add),
-                label: const Text('New Announcement'),
+                icon: const Icon(Icons.add, size: 20),
+                label: const Text('New'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
               ),
             ],
@@ -345,16 +337,43 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
               );
             },
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stack) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('Error: $error'),
-                ],
-              ),
-            ),
+            error: (error, stack) {
+              // Print full error to console/logs so the Firebase link can be copied
+              print('🔴 ANNOUNCEMENTS ERROR:');
+              print('Error: $error');
+              print('Stack trace: $stack');
+              
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Error loading announcements',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Text(
+                        'Check the console logs for the Firebase index link',
+                        style: TextStyle(color: Colors.grey[600]),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        ref.invalidate(announcementsStreamProvider);
+                      },
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -518,11 +537,13 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             children: [
               const Icon(Icons.lightbulb, color: AppColors.primary),
               const SizedBox(width: 8),
-              Text(
-                'Community Ideas Review',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
+              Expanded(
+                child: Text(
+                  'Ideas Review',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
               ),
             ],
           ),
@@ -674,7 +695,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
                 Icon(Icons.person, size: 16, color: Colors.grey[600]),
                 const SizedBox(width: 4),
                 Text(
-                  idea.proposerName,
+                  idea.creatorName,
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
                 const SizedBox(width: 16),
@@ -1384,21 +1405,64 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
 
                 Navigator.pop(dialogContext);
 
-                final success = await ref
-                    .read(adminControllerProvider.notifier)
-                    .createAnnouncement(
-                      title: titleController.text,
-                      message: messageController.text,
-                      type: selectedType,
-                      scheduledFor: scheduledDate,
-                    );
+                try {
+                  final success = await ref
+                      .read(adminControllerProvider.notifier)
+                      .createAnnouncement(
+                        title: titleController.text,
+                        message: messageController.text,
+                        type: selectedType,
+                        scheduledFor: scheduledDate,
+                      );
 
-                if (success && mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Announcement created successfully'),
-                    ),
-                  );
+                  if (success && mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Row(
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.white),
+                            SizedBox(width: 12),
+                            Text('Announcement created successfully!'),
+                          ],
+                        ),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 3),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  } else if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Row(
+                          children: [
+                            Icon(Icons.error, color: Colors.white),
+                            SizedBox(width: 12),
+                            Text('Failed to create announcement'),
+                          ],
+                        ),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 3),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Row(
+                          children: [
+                            const Icon(Icons.error, color: Colors.white),
+                            const SizedBox(width: 12),
+                            Expanded(child: Text('Error: ${e.toString()}')),
+                          ],
+                        ),
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 4),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(
