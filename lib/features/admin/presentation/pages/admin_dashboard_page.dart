@@ -692,25 +692,44 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.person, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  idea.creatorName,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                Expanded(
+                  child: Wrap(
+                    spacing: 12,
+                    runSpacing: 8,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            idea.creatorName,
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 4),
+                          Text(
+                            DateFormat('MMM dd').format(idea.createdAt),
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 16),
-                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
-                const SizedBox(width: 4),
-                Text(
-                  DateFormat('MMM dd, yyyy').format(idea.createdAt),
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () => _showReviewIdeaDialog(idea),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   ),
                   child: const Text('Review'),
                 ),
@@ -727,7 +746,7 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
       text: idea.officialResponse ?? '',
     );
     final budgetController = TextEditingController(
-      text: idea.budget?.toString() ?? '',
+      text: idea.budget ?? '',
     );
     String selectedStatus = idea.status;
     DateTime? timeline;
