@@ -219,9 +219,11 @@ class AdminRepository {
           .where((doc) => doc.data()['status'] == 'approved')
           .length;
 
-      // Get total users
+      // Get total users (excluding admins)
       final usersSnapshot = await _firestore.collection('users').get();
-      final totalUsers = usersSnapshot.docs.length;
+      final totalUsers = usersSnapshot.docs
+          .where((doc) => doc.data()['role'] != 'admin')
+          .length;
 
       return {
         'totalIssues': totalIssues,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../providers/admin_provider.dart';
@@ -41,6 +42,17 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             IconButton(
               icon: const Icon(Icons.notifications),
               onPressed: () => context.push(Routes.notifications),
+              tooltip: 'Notifications',
+            ),
+            IconButton(
+              icon: const Icon(Icons.person),
+              onPressed: () => context.push(Routes.profile),
+              tooltip: 'Profile',
+            ),
+            IconButton(
+              icon: const Icon(Icons.settings),
+              onPressed: () => context.push(Routes.settings),
+              tooltip: 'Settings',
             ),
           ],
         ),
@@ -102,101 +114,93 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             const SizedBox(height: 24),
             
             // Statistics cards
-            GridView.count(
-              crossAxisCount: 4,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.5,
-              children: [
-                _buildStatCard(
-                  'Total Issues',
-                  '${stats['totalIssues']}',
-                  Icons.report_problem,
-                  Colors.orange,
-                ),
-                _buildStatCard(
-                  'Pending Issues',
-                  '${stats['pendingIssues']}',
-                  Icons.pending,
-                  Colors.red,
-                ),
-                _buildStatCard(
-                  'Resolved Issues',
-                  '${stats['resolvedIssues']}',
-                  Icons.check_circle,
-                  Colors.green,
-                ),
-                _buildStatCard(
-                  'Total Users',
-                  '${stats['totalUsers']}',
-                  Icons.people,
-                  Colors.blue,
-                ),
-                _buildStatCard(
-                  'Total Ideas',
-                  '${stats['totalIdeas']}',
-                  Icons.lightbulb,
-                  Colors.purple,
-                ),
-                _buildStatCard(
-                  'Under Review',
-                  '${stats['underReviewIdeas']}',
-                  Icons.rate_review,
-                  Colors.amber,
-                ),
-                _buildStatCard(
-                  'Approved Ideas',
-                  '${stats['approvedIdeas']}',
-                  Icons.thumb_up,
-                  Colors.teal,
-                ),
-                _buildStatCard(
-                  'Resolution Rate',
-                  '${((stats['resolvedIssues'] / (stats['totalIssues'] > 0 ? stats['totalIssues'] : 1)) * 100).toStringAsFixed(0)}%',
-                  Icons.trending_up,
-                  Colors.indigo,
-                ),
-              ],
+            _buildStatCard(
+              'Total Issues',
+              '${stats['totalIssues']}',
+              Icons.report_problem,
+              Colors.orange,
+            ),
+            const SizedBox(height: 12),
+            _buildStatCard(
+              'Pending Issues',
+              '${stats['pendingIssues']}',
+              Icons.pending,
+              Colors.red,
+            ),
+            const SizedBox(height: 12),
+            _buildStatCard(
+              'Resolved Issues',
+              '${stats['resolvedIssues']}',
+              Icons.check_circle,
+              Colors.green,
+            ),
+            const SizedBox(height: 12),
+            _buildStatCard(
+              'Total Users',
+              '${stats['totalUsers']}',
+              Icons.people,
+              Colors.blue,
+            ),
+            const SizedBox(height: 12),
+            _buildStatCard(
+              'Total Ideas',
+              '${stats['totalIdeas']}',
+              Icons.lightbulb,
+              Colors.purple,
+            ),
+            const SizedBox(height: 12),
+            _buildStatCard(
+              'Under Review',
+              '${stats['underReviewIdeas']}',
+              Icons.rate_review,
+              Colors.amber,
+            ),
+            const SizedBox(height: 12),
+            _buildStatCard(
+              'Approved Ideas',
+              '${stats['approvedIdeas']}',
+              Icons.thumb_up,
+              Colors.teal,
+            ),
+            const SizedBox(height: 12),
+            _buildStatCard(
+              'Resolution Rate',
+              '${((stats['resolvedIssues'] / (stats['totalIssues'] > 0 ? stats['totalIssues'] : 1)) * 100).toStringAsFixed(0)}%',
+              Icons.trending_up,
+              Colors.indigo,
             ),
             
             const SizedBox(height: 32),
             
-            // Quick actions
+            // Map Preview Section
             Text(
-              'Quick Actions',
+              'Issues & Ideas Map',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
             const SizedBox(height: 16),
             
-            Wrap(
-              spacing: 16,
-              runSpacing: 16,
-              children: [
-                _buildQuickActionButton(
-                  'Post Announcement',
-                  Icons.campaign,
-                  () => _showCreateAnnouncementDialog(context),
+            Card(
+              elevation: 2,
+              clipBehavior: Clip.antiAlias,
+              child: SizedBox(
+                height: 400,
+                child: Stack(
+                  children: [
+                    GoogleMap(
+                      initialCameraPosition: const CameraPosition(
+                        target: LatLng(-26.2041, 28.0473), // Johannesburg coordinates
+                        zoom: 11,
+                      ),
+                      myLocationButtonEnabled: false,
+                      zoomControlsEnabled: false,
+                      mapToolbarEnabled: false,
+                      compassEnabled: false,
+                    ),
+                  ],
                 ),
-                _buildQuickActionButton(
-                  'View All Issues',
-                  Icons.list,
-                  () => context.push(Routes.issuesList),
-                ),
-                _buildQuickActionButton(
-                  'View All Ideas',
-                  Icons.lightbulb_outline,
-                  () => context.push(Routes.ideasHub),
-                ),
-                _buildQuickActionButton(
-                  'View Map',
-                  Icons.map,
-                  () => context.push(Routes.mapView),
-                ),
-              ],
+              ),
             ),
           ],
         ),
@@ -225,24 +229,40 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
       elevation: 2,
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
-            Icon(icon, size: 32, color: color),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
               ),
+              child: Icon(icon, size: 32, color: color),
             ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 12),
-              textAlign: TextAlign.center,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

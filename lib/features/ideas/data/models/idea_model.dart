@@ -34,6 +34,16 @@ class IdeaModel extends Idea {
 
   /// Create from JSON
   factory IdeaModel.fromJson(Map<String, dynamic> json, [String? id]) {
+    // Handle budget - can be String or double from Firestore
+    String budgetValue;
+    if (json['budget'] is double) {
+      budgetValue = (json['budget'] as double).toString();
+    } else if (json['budget'] is int) {
+      budgetValue = (json['budget'] as int).toString();
+    } else {
+      budgetValue = json['budget'] as String;
+    }
+    
     return IdeaModel(
       id: id ?? json['id'] as String,
       createdBy: json['createdBy'] as String,
@@ -42,7 +52,7 @@ class IdeaModel extends Idea {
       title: json['title'] as String,
       description: json['description'] as String,
       category: json['category'] as String,
-      budget: json['budget'] as String,
+      budget: budgetValue,
       status: json['status'] as String,
       location: json['location'] as GeoPoint?,
       locationName: json['locationName'] as String?,

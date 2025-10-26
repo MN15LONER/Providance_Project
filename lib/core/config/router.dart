@@ -97,6 +97,18 @@ final routerProvider = Provider<GoRouter>((ref) {
         return Routes.home;
       }
 
+      // If admin is trying to access user routes, redirect back to admin dashboard
+      final userOnlyRoutes = [
+        Routes.home,
+        Routes.issuesList,
+        Routes.ideasHub,
+        Routes.mapView,
+      ];
+      if (isLoggedIn && user.role == 'admin' && userOnlyRoutes.contains(state.matchedLocation)) {
+        print('   ➡️ Redirecting admin from user route to admin dashboard');
+        return Routes.adminDashboard;
+      }
+
       // No redirect needed
       print('   ✅ No redirect needed');
       return null;
