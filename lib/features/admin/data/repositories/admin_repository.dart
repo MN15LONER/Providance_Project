@@ -222,7 +222,12 @@ class AdminRepository {
       // Get total users (excluding admins)
       final usersSnapshot = await _firestore.collection('users').get();
       final totalUsers = usersSnapshot.docs
-          .where((doc) => doc.data()['role'] != 'admin')
+          .where((doc) {
+            final data = doc.data();
+            final role = data['role'] as String?;
+            // Only count users who are NOT admins (including null/missing role)
+            return role != 'admin';
+          })
           .length;
 
       return {

@@ -8,6 +8,7 @@ import 'package:muni_report_pro/features/auth/presentation/providers/auth_contro
 import 'package:muni_report_pro/core/constants/route_constants.dart';
 import 'package:muni_report_pro/core/theme/app_colors.dart';
 import 'package:muni_report_pro/features/announcements/presentation/providers/announcements_provider.dart';
+import 'package:muni_report_pro/features/issues/presentation/providers/issue_provider.dart';
 
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -212,7 +213,7 @@ class HomePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 24),
                 
-                // Recent Activity (placeholder)
+                // Recent Activity
                 Text(
                   'Recent Activity',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -221,28 +222,7 @@ class HomePage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        ListTile(
-                          leading: const Icon(Icons.check_circle, color: Colors.green),
-                          title: const Text('Issue #1234 Resolved'),
-                          subtitle: const Text('Pothole on Main Street'),
-                          trailing: const Text('2 days ago'),
-                        ),
-                        const Divider(),
-                        ListTile(
-                          leading: const Icon(Icons.pending, color: Colors.orange),
-                          title: const Text('Issue #1235 In Progress'),
-                          subtitle: const Text('Streetlight not working'),
-                          trailing: const Text('5 days ago'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                _buildRecentActivity(context, ref),
               ],
             ),
           );
@@ -281,6 +261,118 @@ class HomePage extends ConsumerWidget {
           SnackBar(content: Text('Logout failed: ${e.toString()}')),
         );
       }
+    }
+  }
+
+  Widget _buildRecentActivity(BuildContext context, WidgetRef ref) {
+    final issuesAsync = ref.watch(recentIssuesProvider);
+
+    return issuesAsync.when(
+      data: (issues) {
+        if (issues.isEmpty) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Text(
+                  'No recent activity',
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
+              ),
+            ),
+          );
+        }
+
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                for (int i = 0; i < min(issues.length, 5); i++) ...[
+                  if (i > 0) const Divider(),
+                  ListTile(
+                    leading: Icon(
+                      _getStatusIcon(issues[i].status),
+                      color: _getStatusColor(issues[i].status),
+                    ),
+                    title: Text(
+                      '${_getStatusLabel(issues[i].status)}: ${issues[i].title}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    subtitle: Text(
+                      issues[i].description,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: Text(
+                      timeago.format(issues[i].updatedAt),
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                    onTap: () => context.push('${Routes.issueDetail}/${issues[i].id}'),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
+      loading: () => const Card(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      ),
+      error: (error, stack) => Card(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Center(
+            child: Text(
+              'Error loading activity',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status) {
+      case 'resolved':
+        return Icons.check_circle;
+      case 'in_progress':
+        return Icons.pending;
+      case 'pending':
+        return Icons.hourglass_empty;
+      default:
+        return Icons.info;
+    }
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status) {
+      case 'resolved':
+        return Colors.green;
+      case 'in_progress':
+        return Colors.blue;
+      case 'pending':
+        return Colors.orange;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  String _getStatusLabel(String status) {
+    switch (status) {
+      case 'resolved':
+        return 'Resolved';
+      case 'in_progress':
+        return 'In Progress';
+      case 'pending':
+        return 'Pending';
+      default:
+        return 'Issue';
     }
   }
 }

@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/services/location_service.dart';
 import '../../data/repositories/issue_repository.dart';
 import '../../domain/entities/issue.dart';
+import '../../data/models/issue_model.dart';
 
 /// Issue repository provider
 final issueRepositoryProvider = Provider<IssueRepository>((ref) {
@@ -61,6 +62,18 @@ final issueDetailProvider = FutureProvider.family<Issue, String>((ref, issueId) 
 final issuesCountProvider = FutureProvider<Map<String, int>>((ref) {
   final repository = ref.watch(issueRepositoryProvider);
   return repository.getIssuesCountByStatus();
+});
+
+/// Recent issues stream provider (ordered by updatedAt)
+final recentIssuesProvider = StreamProvider<List<Issue>>((ref) {
+  return FirebaseFirestore.instance
+      .collection('issues')
+      .orderBy('updatedAt', descending: true)
+      .limit(10)
+      .snapshots()
+      .map((snapshot) => snapshot.docs
+          .map((doc) => IssueModel.fromFirestore(doc) as Issue)
+          .toList());
 });
 
 /// Issue controller state

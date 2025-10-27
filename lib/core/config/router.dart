@@ -98,6 +98,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       // If admin is trying to access user routes, redirect back to admin dashboard
+      // But allow access to profile, settings, and other shared routes
       final userOnlyRoutes = [
         Routes.home,
         Routes.issuesList,
@@ -196,20 +197,18 @@ final routerProvider = Provider<GoRouter>((ref) {
               child: const MapViewPage(),
             ),
           ),
-          
-          // Profile
-          GoRoute(
-            path: Routes.profile,
-            name: RouteNames.profile,
-            pageBuilder: (context, state) => NoTransitionPage(
-              key: state.pageKey,
-              child: const ProfilePage(),
-            ),
-          ),
         ],
       ),
       
-      // Secondary Routes (without bottom nav)
+      // Profile Routes (without bottom nav - shared by both users and admins)
+      GoRoute(
+        path: Routes.profile,
+        name: RouteNames.profile,
+        pageBuilder: (context, state) => MaterialPage(
+          key: state.pageKey,
+          child: const ProfilePage(),
+        ),
+      ),
       GoRoute(
         path: Routes.editProfile,
         name: RouteNames.editProfile,
