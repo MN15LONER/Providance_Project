@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -5,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../providers/admin_provider.dart';
 import '../../domain/entities/announcement.dart';
 import '../../../ideas/presentation/providers/idea_provider.dart';
@@ -19,6 +22,8 @@ class AdminDashboardPage extends ConsumerStatefulWidget {
 
 class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
   int _selectedIndex = 0;
+  final Completer<GoogleMapController> _mapController = Completer();
+  Set<Marker> _markers = {};
 
   @override
   Widget build(BuildContext context) {
@@ -174,31 +179,25 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
             
             // Map Preview Section
             Text(
-              'Issues & Ideas Map',
+              'Issues Map',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
             ),
             const SizedBox(height: 16),
             
+            // Map Legend
+            _buildMapLegend(),
+            const SizedBox(height: 12),
+            
             Card(
               elevation: 2,
               clipBehavior: Clip.antiAlias,
-              child: SizedBox(
-                height: 400,
-                child: Stack(
-                  children: [
-                    GoogleMap(
-                      initialCameraPosition: const CameraPosition(
-                        target: LatLng(-26.2041, 28.0473), // Johannesburg coordinates
-                        zoom: 11,
-                      ),
-                      myLocationButtonEnabled: false,
-                      zoomControlsEnabled: false,
-                      mapToolbarEnabled: false,
-                      compassEnabled: false,
-                    ),
-                  ],
+              child: GestureDetector(
+                onVerticalDragUpdate: (_) {}, // Prevent parent scroll
+                child: SizedBox(
+                  height: 400,
+                  child: _buildInteractiveMap(ref),
                 ),
               ),
             ),
@@ -1523,5 +1522,240 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
         ),
       ),
     );
+  }
+
+  /// Build interactive map with issue markers
+  Widget _buildInteractiveMap(WidgetRef ref) {
+    final issuesAsync = ref.watch(allIssuesProvider);
+
+    return issuesAsync.when(
+      data: (issues) {
+        // Load markers when issues are available
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _loadIssuesOnMap(issues);
+        });
+
+        return GoogleMap(
+          initialCameraPosition: const CameraPosition(
+            target: LatLng(-26.2041, 28.0473), // Johannesburg coordinates
+            zoom: 11,
+          ),
+          onMapCreated: (GoogleMapController controller) {
+            if (!_mapController.isCompleted) {
+              _mapController.complete(controller);
+            }
+          },
+          markers: _markers,
+          myLocationButtonEnabled: true,
+          zoomControlsEnabled: true,
+          mapToolbarEnabled: true,
+          compassEnabled: true,
+          zoomGesturesEnabled: true,
+          scrollGesturesEnabled: true,
+          tiltGesturesEnabled: true,
+          rotateGesturesEnabled: true,
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(
+        child: Text('Error loading map: $error'),
+      ),
+    );
+  }
+
+  /// Load issues as markers on the map
+  Future<void> _loadIssuesOnMap(List<dynamic> issues) async {
+    final newMarkers = <Marker>{};
+
+    for (final issue in issues) {
+      if (issue.location != null) {
+        // Create custom icon for this category
+        final icon = await _createCustomMarkerIcon(
+          _getCategoryIcon(issue.category),
+          _getCategoryColor(issue.category),
+        );
+        
+        newMarkers.add(
+          Marker(
+            markerId: MarkerId(issue.id),
+            position: LatLng(
+              issue.location!.latitude,
+              issue.location!.longitude,
+            ),
+            infoWindow: InfoWindow(
+              title: issue.title,
+              snippet: '${IssueCategories.getDisplayName(issue.category)} - ${issue.status}',
+              onTap: () {
+                context.push('${Routes.issueDetail}/${issue.id}');
+              },
+            ),
+            icon: icon,
+          ),
+        );
+      }
+    }
+
+    if (mounted && newMarkers.length != _markers.length) {
+      setState(() {
+        _markers = newMarkers;
+      });
+    }
+  }
+
+  /// Get marker color based on issue category
+  double _getMarkerColorByCategory(String category) {
+    switch (category.toLowerCase()) {
+      case 'potholes':
+        return BitmapDescriptor.hueOrange;
+      case 'water':
+        return BitmapDescriptor.hueBlue;
+      case 'electricity':
+        return BitmapDescriptor.hueYellow;
+      case 'waste':
+        return BitmapDescriptor.hueGreen;
+      case 'safety':
+        return BitmapDescriptor.hueRed;
+      case 'infrastructure':
+        return BitmapDescriptor.hueViolet;
+      default:
+        return BitmapDescriptor.hueRed;
+    }
+  }
+
+  /// Get category color for legend
+  Color _getCategoryColor(String category) {
+    switch (category.toLowerCase()) {
+      case 'potholes':
+        return Colors.orange;
+      case 'water':
+        return Colors.blue;
+      case 'electricity':
+        return Colors.yellow[700]!;
+      case 'waste':
+        return Colors.green;
+      case 'safety':
+        return Colors.red;
+      case 'infrastructure':
+        return Colors.purple;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  /// Get category icon for legend
+  IconData _getCategoryIcon(String category) {
+    switch (category.toLowerCase()) {
+      case 'potholes':
+        return Icons.construction;
+      case 'water':
+        return Icons.water_drop;
+      case 'electricity':
+        return Icons.bolt;
+      case 'waste':
+        return Icons.delete;
+      case 'safety':
+        return Icons.warning;
+      case 'infrastructure':
+        return Icons.business;
+      default:
+        return Icons.location_on;
+    }
+  }
+
+  /// Build horizontal map legend
+  Widget _buildMapLegend() {
+    return Card(
+      elevation: 1,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Categories',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 16,
+              runSpacing: 8,
+              children: IssueCategories.all.map((category) {
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _getCategoryIcon(category),
+                      size: 16,
+                      color: _getCategoryColor(category),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      IssueCategories.getDisplayName(category),
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Create custom marker icon with category icon and color
+  Future<BitmapDescriptor> _createCustomMarkerIcon(IconData icon, Color color) async {
+    final pictureRecorder = ui.PictureRecorder();
+    final canvas = Canvas(pictureRecorder);
+    const size = 120.0;
+
+    // Draw circle background
+    final paint = Paint()..color = color;
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2,
+      paint,
+    );
+
+    // Draw white border
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8;
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2 - 4,
+      borderPaint,
+    );
+
+    // Draw icon
+    final textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+    textPainter.text = TextSpan(
+      text: String.fromCharCode(icon.codePoint),
+      style: TextStyle(
+        fontSize: 60,
+        fontFamily: icon.fontFamily,
+        color: Colors.white,
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        (size - textPainter.width) / 2,
+        (size - textPainter.height) / 2,
+      ),
+    );
+
+    // Convert to image
+    final picture = pictureRecorder.endRecording();
+    final image = await picture.toImage(size.toInt(), size.toInt());
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+
+    return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
   }
 }

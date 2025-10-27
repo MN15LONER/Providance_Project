@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -117,41 +118,48 @@ class _MapViewPageState extends ConsumerState<MapViewPage> {
     controller.animateCamera(CameraUpdate.newCameraPosition(cameraPosition));
   }
 
-  void _loadIssuesOnMap() {
+  Future<void> _loadIssuesOnMap() async {
     final issues = ref.watch(allIssuesProvider).valueOrNull ?? [];
+    final newMarkers = <Marker>{};
     
-    setState(() {
-      _markers = {}; // Clear existing markers
-      
-      for (final issue in issues) {
-        // Filter by selected category if any
-        if (_selectedCategory != null && issue.category != _selectedCategory) {
-          continue;
-        }
-        
-        if (issue.location != null) {
-          _markers.add(
-            Marker(
-              markerId: MarkerId(issue.id),
-              position: LatLng(
-                issue.location!.latitude,
-                issue.location!.longitude,
-              ),
-              infoWindow: InfoWindow(
-                title: issue.title,
-                snippet: '${IssueCategories.getDisplayName(issue.category)} - ${issue.status}',
-                onTap: () {
-                  context.push('${Routes.issueDetail}/${issue.id}');
-                },
-              ),
-              icon: BitmapDescriptor.defaultMarkerWithHue(
-                _getMarkerColorByCategory(issue.category),
-              ),
-            ),
-          );
-        }
+    for (final issue in issues) {
+      // Filter by selected category if any
+      if (_selectedCategory != null && issue.category != _selectedCategory) {
+        continue;
       }
-    });
+      
+      if (issue.location != null) {
+        // Create custom icon for this category
+        final icon = await _createCustomMarkerIcon(
+          _getCategoryIcon(issue.category),
+          _getCategoryColor(issue.category),
+        );
+        
+        newMarkers.add(
+          Marker(
+            markerId: MarkerId(issue.id),
+            position: LatLng(
+              issue.location!.latitude,
+              issue.location!.longitude,
+            ),
+            infoWindow: InfoWindow(
+              title: issue.title,
+              snippet: '${IssueCategories.getDisplayName(issue.category)} - ${issue.status}',
+              onTap: () {
+                context.push('${Routes.issueDetail}/${issue.id}');
+              },
+            ),
+            icon: icon,
+          ),
+        );
+      }
+    }
+    
+    if (mounted) {
+      setState(() {
+        _markers = newMarkers;
+      });
+    }
   }
 
   double _getMarkerColorByCategory(String category) {
@@ -397,5 +405,57 @@ class _MapViewPageState extends ConsumerState<MapViewPage> {
       loading: () => const SizedBox.shrink(),
       error: (_, __) => const SizedBox.shrink(),
     );
+  }
+
+  /// Create custom marker icon with category icon and color
+  Future<BitmapDescriptor> _createCustomMarkerIcon(IconData icon, Color color) async {
+    final pictureRecorder = ui.PictureRecorder();
+    final canvas = Canvas(pictureRecorder);
+    const size = 120.0;
+
+    // Draw circle background
+    final paint = Paint()..color = color;
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2,
+      paint,
+    );
+
+    // Draw white border
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 8;
+    canvas.drawCircle(
+      const Offset(size / 2, size / 2),
+      size / 2 - 4,
+      borderPaint,
+    );
+
+    // Draw icon
+    final textPainter = TextPainter(textDirection: ui.TextDirection.ltr);
+    textPainter.text = TextSpan(
+      text: String.fromCharCode(icon.codePoint),
+      style: TextStyle(
+        fontSize: 60,
+        fontFamily: icon.fontFamily,
+        color: Colors.white,
+      ),
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset(
+        (size - textPainter.width) / 2,
+        (size - textPainter.height) / 2,
+      ),
+    );
+
+    // Convert to image
+    final picture = pictureRecorder.endRecording();
+    final image = await picture.toImage(size.toInt(), size.toInt());
+    final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
+
+    return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
   }
 }

@@ -257,6 +257,27 @@ class IdeaRepository {
         'ideaId': ideaId,
         'timestamp': FieldValue.serverTimestamp(),
       });
+
+      // Award points for voting
+      try {
+        await _firestore.collection('users').doc(user.uid).update({
+          'points': FieldValue.increment(1),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        // Create points history entry
+        await _firestore.collection('points_history').add({
+          'userId': user.uid,
+          'points': 1,
+          'action': 'Voted on idea',
+          'referenceId': ideaId,
+          'referenceType': 'idea',
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        // Don't fail the vote if points fail
+        print('Failed to award points: $e');
+      }
     } catch (e) {
       if (e is Failure) rethrow;
       throw DataFailure('Failed to vote on idea: $e');
@@ -303,6 +324,27 @@ class IdeaRepository {
 
       for (final doc in voteQuery.docs) {
         await doc.reference.delete();
+      }
+
+      // Deduct points for removing vote
+      try {
+        await _firestore.collection('users').doc(user.uid).update({
+          'points': FieldValue.increment(-1),
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        // Create points history entry
+        await _firestore.collection('points_history').add({
+          'userId': user.uid,
+          'points': -1,
+          'action': 'Removed vote from idea',
+          'referenceId': ideaId,
+          'referenceType': 'idea',
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        // Don't fail the vote removal if points fail
+        print('Failed to deduct points: $e');
       }
     } catch (e) {
       if (e is Failure) rethrow;

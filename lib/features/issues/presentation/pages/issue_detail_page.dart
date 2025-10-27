@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/issue.dart';
 import '../providers/issue_provider.dart';
+import '../../../gamification/presentation/widgets/verify_button.dart';
 
 class IssueDetailPage extends ConsumerWidget {
   final String issueId;
@@ -49,7 +50,7 @@ class IssueDetailPage extends ConsumerWidget {
   }
 }
 
-class _IssueDetailContent extends StatelessWidget {
+class _IssueDetailContent extends ConsumerWidget {
   final Issue issue;
 
   const _IssueDetailContent({required this.issue});
@@ -85,7 +86,7 @@ class _IssueDetailContent extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
@@ -357,11 +358,22 @@ class _IssueDetailContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Verifications',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Verifications',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    VerifyButton(
+                      issueId: issue.id,
+                      verificationCount: issue.verificationCount,
+                      reportedBy: issue.reportedBy,
+                      compact: false,
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Row(

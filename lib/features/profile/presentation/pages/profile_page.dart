@@ -24,17 +24,42 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final userModelAsync = ref.watch(currentUserModelProvider);
+    final user = userModelAsync.valueOrNull;
+    final isAdmin = user?.role == 'admin';
     
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit),
-            onPressed: () => context.go(Routes.editProfile),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          // Navigate back to appropriate home based on role
+          if (isAdmin) {
+            context.go(Routes.adminDashboard);
+          } else {
+            context.go(Routes.home);
+          }
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Profile'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              // Navigate back to appropriate home based on role
+              if (isAdmin) {
+                context.go(Routes.adminDashboard);
+              } else {
+                context.go(Routes.home);
+              }
+            },
           ),
-        ],
-      ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () => context.go(Routes.editProfile),
+            ),
+          ],
+        ),
       body: userModelAsync.when(
         data: (user) {
           if (user == null) {
@@ -320,6 +345,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
