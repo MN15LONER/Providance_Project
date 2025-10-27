@@ -123,6 +123,11 @@ class _MapViewPageState extends ConsumerState<MapViewPage> {
     final newMarkers = <Marker>{};
     
     for (final issue in issues) {
+      // Skip resolved issues - they don't need to be on the map anymore
+      if (issue.status.toLowerCase() == 'resolved') {
+        continue;
+      }
+      
       // Filter by selected category if any
       if (_selectedCategory != null && issue.category != _selectedCategory) {
         continue;

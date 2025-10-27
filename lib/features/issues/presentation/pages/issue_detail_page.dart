@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../domain/entities/issue.dart';
@@ -15,36 +17,81 @@ class IssueDetailPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final issueAsync = ref.watch(issueStreamProvider(issueId));
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Issue Details'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () {
-              // TODO: Implement share functionality
-            },
-          ),
-        ],
-      ),
-      body: issueAsync.when(
-        data: (issue) => _IssueDetailContent(issue: issue),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 64, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('Error loading issue: $error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => ref.invalidate(issueStreamProvider(issueId)),
-                child: const Text('Retry'),
-              ),
-            ],
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          // Go back using router instead of popping
+          context.pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Issue Details'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.share),
+              onPressed: () {
+                final issue = issueAsync.valueOrNull;
+                if (issue != null) {
+                  _shareIssue(context, issue);
+                }
+              },
+            ),
+          ],
+        ),
+        body: issueAsync.when(
+          data: (issue) => _IssueDetailContent(issue: issue),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) => Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                const SizedBox(height: 16),
+                Text('Error loading issue: $error'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () => ref.invalidate(issueStreamProvider(issueId)),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  static void _shareIssue(BuildContext context, Issue issue) {
+    final shareText = '''
+📢 Issue Report: ${issue.title}
+
+📍 Location: ${issue.locationName}
+📂 Category: ${issue.category}
+⚠️ Severity: ${issue.severity}
+📊 Status: ${issue.status}
+✅ Verifications: ${issue.verificationCount}
+
+${issue.description}
+
+Reported via Muni Report Pro
+''';
+
+    Clipboard.setData(ClipboardData(text: shareText));
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(child: Text('Issue details copied to clipboard!')),
+          ],
+        ),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

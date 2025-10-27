@@ -240,6 +240,8 @@ class VerifyButton extends ConsumerWidget {
 
   /// Show error message
   void _showError(BuildContext context, String error) {
+    if (!context.mounted) return;
+    
     String message = 'Failed to verify. Please try again.';
     
     if (error.contains('already verified')) {

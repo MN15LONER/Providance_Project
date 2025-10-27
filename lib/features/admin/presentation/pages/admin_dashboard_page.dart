@@ -1568,6 +1568,11 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
     final newMarkers = <Marker>{};
 
     for (final issue in issues) {
+      // Skip resolved issues - they don't need to be on the map anymore
+      if (issue.status.toLowerCase() == 'resolved') {
+        continue;
+      }
+      
       if (issue.location != null) {
         // Create custom icon for this category
         final icon = await _createCustomMarkerIcon(

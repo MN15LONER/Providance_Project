@@ -216,7 +216,8 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
           backgroundColor: Colors.green,
         ),
       );
-      context.go('${Routes.issueDetail}/$issueId');
+      // Use push instead of go so user can navigate back
+      context.push('${Routes.issueDetail}/$issueId');
     }
   }
 
@@ -224,10 +225,17 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
   Widget build(BuildContext context) {
     final controllerState = ref.watch(issueControllerProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Report Issue'),
-      ),
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          context.pop();
+        }
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Report Issue'),
+        ),
       body: controllerState.isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -436,6 +444,7 @@ class _ReportIssuePageState extends ConsumerState<ReportIssuePage> {
                 ),
               ),
             ),
+      ),
     );
   }
 
