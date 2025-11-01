@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -1526,6 +1527,25 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
 
   /// Build interactive map with issue markers
   Widget _buildInteractiveMap(WidgetRef ref) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.lock_outline, size: 48, color: Colors.grey),
+            const SizedBox(height: 12),
+            const Text('Please sign in to view the map.'),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: () => context.push(Routes.profile),
+              child: const Text('Sign in / Switch account'),
+            ),
+          ],
+        ),
+      );
+    }
+
     final issuesAsync = ref.watch(allIssuesProvider);
 
     return issuesAsync.when(
@@ -1558,7 +1578,32 @@ class _AdminDashboardPageState extends ConsumerState<AdminDashboardPage> {
       },
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stack) => Center(
-        child: Text('Error loading map: $error'),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text(
+                'Error loading map: $error',
+                textAlign: TextAlign.center,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text('Signed-in UID: ${user.uid}'),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () {
+                print('🔴 Map load error: $error');
+                print(stack);
+                ref.invalidate(allIssuesProvider);
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('Retry'),
+            ),
+          ],
+        ),
       ),
     );
   }

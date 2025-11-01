@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+// storage is handled by ImageUtils; don't import FirebaseStorage here to avoid unused import warning
 import 'package:uuid/uuid.dart';
 import '../../../../core/utils/image_utils.dart';
 import '../../../../core/services/location_service.dart';
@@ -12,17 +12,15 @@ import '../../domain/entities/issue.dart';
 /// Repository for issue operations
 class IssueRepository {
   final FirebaseFirestore _firestore;
-  final FirebaseStorage _storage;
   final FirebaseAuth _auth;
   final LocationService _locationService;
 
   IssueRepository({
     FirebaseFirestore? firestore,
-    FirebaseStorage? storage,
     FirebaseAuth? auth,
     LocationService? locationService,
   })  : _firestore = firestore ?? FirebaseFirestore.instance,
-        _storage = storage ?? FirebaseStorage.instance,
+        
         _auth = auth ?? FirebaseAuth.instance,
         _locationService = locationService ?? LocationService();
 
@@ -103,7 +101,7 @@ class IssueRepository {
         'locationName': locationName,
         'ward': userData['ward'],
         'photos': photoUrls,
-        'verifications': [],
+  'verifications': <String>[],
         'verificationCount': 0,
         'assignedTo': null,
         'assignedToName': null,
@@ -181,7 +179,12 @@ class IssueRepository {
         query = query.limit(limit);
       }
 
-      return query.snapshots().map((snapshot) {
+      return query
+          .snapshots()
+          .handleError((Object error, StackTrace? stack) {
+        print('🔴 Firestore getIssues error: $error');
+        if (stack != null) print(stack);
+      }).map((snapshot) {
         return snapshot.docs.map((doc) {
           return IssueModel.fromFirestore(doc).toEntity();
         }).toList();
@@ -287,7 +290,7 @@ class IssueRepository {
         throw const DataFailure('Issue not found');
       }
 
-      final verifications = List<String>.from(issue.data()!['verifications'] ?? []);
+  final verifications = List<String>.from((issue.data()!['verifications'] as List<dynamic>?) ?? []);
 
       // Check if user already verified
       if (verifications.contains(user.uid)) {
@@ -329,7 +332,7 @@ class IssueRepository {
         throw const DataFailure('Issue not found');
       }
 
-      final verifications = List<String>.from(issue.data()!['verifications'] ?? []);
+  final verifications = List<String>.from((issue.data()!['verifications'] as List<dynamic>?) ?? []);
 
       // Check if user has verified
       if (!verifications.contains(user.uid)) {

@@ -160,13 +160,18 @@ class DiscussionsRepository {
 
   /// Get comments for a discussion
   Stream<List<DiscussionComment>> getComments(String discussionId) {
-    return _firestore
+    final query = _firestore
         .collection('discussion_comments')
         .where('discussionId', isEqualTo: discussionId)
         .where('isActive', isEqualTo: true)
-        .orderBy('createdAt', descending: false)
-        .snapshots()
-        .map((snapshot) {
+        .orderBy('createdAt', descending: false);
+
+    // Attach an error handler to surface permission/other Firestore errors in logs.
+    return query.snapshots().handleError((Object error, StackTrace? stack) {
+      // Log details to console for easier debugging in dev builds
+      print('🔴 Firestore getComments error for discussionId=$discussionId: $error');
+      if (stack != null) print(stack);
+    }).map((snapshot) {
       return snapshot.docs
           .map((doc) => DiscussionCommentModel.fromFirestore(doc))
           .toList();
